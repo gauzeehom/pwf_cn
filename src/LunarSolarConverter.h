@@ -31,6 +31,6 @@ Solar LunarToSolar(Lunar lunar);
 
 Lunar SolarToLunar(Solar solar);
 
-const char * LunarToString(Lunar lunar);
+const char * SolarToLunarString(int solarYear, int solarMonth, int solarDay, int wDay);
 
 #endif /* defined(__ISEE15__LunarSolarConverter__) */

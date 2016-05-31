@@ -7,6 +7,7 @@
 //
 
 #include <string.h>
+#include <stdlib.h>
 #include "LunarSolarConverter.h"
 
 
@@ -165,24 +166,29 @@ Lunar SolarToLunar(Solar solar) {
     return lunar;
 }
 
-const char * LunarToString(Lunar lunar){
+const char *SolarToLunarString(int solarYear, int solarMonth, int solarDay, int wDay){
+    static char wdaycn[7][4]={"日","一","二","三","四","五","六"};
     
-    char year_buffer[6];
-    int year = lunar.lunarYear;
-    snprintf(year_buffer, 6, "%d-", year);
+    Solar solar;
+    solar.solarYear = solarYear;
+    solar.solarMonth = solarMonth;
+    solar.solarDay = solarDay;
     
-    char month_buffer[4];
+    Lunar lunar = SolarToLunar(solar);
+    
+    char month_buffer[5];
     int month = lunar.lunarMonth;
-    snprintf(month_buffer, 4, "%d-", month);
+    snprintf(month_buffer, 5, " %d-", month);
     
     char day_buffer[3];
     int day = lunar.lunarDay;
     snprintf(day_buffer, 3, "%d", day);
     
-    char str[13];
-    strcpy(str, year_buffer);
+    char *str = malloc(20);
+    strcpy(str, "周");
+    strcat(str, wdaycn[wDay]);
     strcat(str, month_buffer);
     strcat(str, day_buffer);
     
-    return &str;
+    return str;
 }
