@@ -168,6 +168,9 @@ Lunar SolarToLunar(Solar solar) {
 
 const char *SolarToLunarString(int solarYear, int solarMonth, int solarDay, int wDay){
     static char wdaycn[7][4]={"日","一","二","三","四","五","六"};
+	static char lmonth[12][4]={"正","二","三","四","五","六","七","八","九","十","冬","腊"};
+	static char ldaytens[4][4]={"初","十","廿","三"};
+	static char ldayones[9][4]={"一","二","三","四","五","六","七","八","九"};
     
     Solar solar;
     solar.solarYear = solarYear;
@@ -176,19 +179,40 @@ const char *SolarToLunarString(int solarYear, int solarMonth, int solarDay, int 
     
     Lunar lunar = SolarToLunar(solar);
     
-    char month_buffer[5];
     int month = lunar.lunarMonth;
-    snprintf(month_buffer, 5, " %d-", month);
-    
-    char day_buffer[3];
+	bool isleap = lunar.isleap;
     int day = lunar.lunarDay;
-    snprintf(day_buffer, 3, "%d", day);
     
-    char *str = malloc(20);
+    char *str = malloc(25);
+	
+	//周X
     strcpy(str, "周");
     strcat(str, wdaycn[wDay]);
-    strcat(str, month_buffer);
-    strcat(str, day_buffer);
+	
+	//空格
+    strcat(str, " ");
+    
+	//(闰)X月
+	if(isleap){
+        strcat(str, "闰");
+    }
+    strcat(str, lmonth[month-1]);
+	strcat(str, "月");
+	
+	//XX
+	if(day < 11){
+		strcat(str, ldaytens[0]);
+	} else if(day == 20){
+		strcat(str, "二");
+	} else {
+		strcat(str, ldaytens[(day / 10)]);
+	}
+    
+	if((day % 10) == 0){
+		strcat(str, "十");
+	} else {
+		strcat(str, ldayones[(day % 10) - 1]);
+	}
     
     return str;
 }
