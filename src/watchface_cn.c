@@ -4,16 +4,6 @@
 static Window *s_main_window;
 static TextLayer *s_time_layer, *s_date_layer, *s_lunar_layer, *s_connection_layer, *s_battery_layer;
 
-static void battery_handler(BatteryChargeState charge_state) {
-  static char battery_text[] = "100% charged";
-  if (charge_state.is_charging) {
-    snprintf(battery_text, sizeof(battery_text), "charging");
-  } else {
-    snprintf(battery_text, sizeof(battery_text), "%d%%", charge_state.charge_percent);
-  }
-  text_layer_set_text(s_battery_layer, battery_text);
-}
-
 static void update_time() {
   // Get a tm structure
   time_t temp = time(NULL); 
@@ -39,16 +29,30 @@ static void update_time() {
   // Show the date
   text_layer_set_text(s_lunar_layer, lunarStr);
   free((char*)lunarStr);
-
-  battery_handler(battery_state_service_peek());
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
 }
 
-static void bluetooth_handler(bool connected) {
-  text_layer_set_text(s_connection_layer, connected ? "pebble" : "no connection");
+static void bluetooth_callback(bool connected) {
+  // Show connection info
+  text_layer_set_text(s_connection_layer, connected ? "pebble" : "searching...");
+
+  if(!connected) {
+    // Issue a vibrating alert
+    vibes_double_pulse();
+  }
+}
+
+static void battery_handler(BatteryChargeState state) {
+  static char battery_text[] = "100% charged";
+  if (state.is_charging) {
+    snprintf(battery_text, sizeof(battery_text), "charging");
+  } else {
+    snprintf(battery_text, sizeof(battery_text), "%d%%", state.charge_percent);
+  }
+  text_layer_set_text(s_battery_layer, battery_text);
 }
 
 static void main_window_load(Window *window) {
@@ -62,7 +66,8 @@ static void main_window_load(Window *window) {
   text_layer_set_background_color(s_connection_layer, GColorBlack);
   text_layer_set_font(s_connection_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   text_layer_set_text_alignment(s_connection_layer, GTextAlignmentLeft);
-  bluetooth_handler(bluetooth_connection_service_peek());
+  // Show the correct state of the BT connection from the start
+  bluetooth_callback(connection_service_peek_pebble_app_connection());
   // Add to Window
   layer_add_child(window_layer, text_layer_get_layer(s_connection_layer));
 
@@ -72,7 +77,6 @@ static void main_window_load(Window *window) {
   text_layer_set_background_color(s_battery_layer, GColorBlack);
   text_layer_set_font(s_battery_layer, fonts_get_system_font(FONT_KEY_GOTHIC_14));
   text_layer_set_text_alignment(s_battery_layer, GTextAlignmentRight);
-  text_layer_set_text(s_battery_layer, "battery");
   // Add to Window
   layer_add_child(window_layer, text_layer_get_layer(s_battery_layer));
 
@@ -136,8 +140,15 @@ static void init() {
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
 
   battery_state_service_subscribe(battery_handler);
+  // Ensure battery level is displayed from the start
+  battery_handler(battery_state_service_peek());
 
-  bluetooth_connection_service_subscribe(bluetooth_handler);
+
+  // Register for Bluetooth connection updates
+  connection_service_subscribe((ConnectionHandlers) {
+    .pebble_app_connection_handler = bluetooth_callback
+  });
+
 }
 
 static void deinit() {
